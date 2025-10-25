@@ -1,6 +1,5 @@
-// lib/services/food_classification_service.dart
 import 'dart:io';
-import 'dart:math'; // Cần import thư viện math để dùng hàm exp()
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:pytorch_lite/pytorch_lite.dart';
@@ -12,9 +11,7 @@ class ClassificationResult {
   ClassificationResult(this.label, this.confidence);
 
   @override
-  String toString() {
-    return 'ClassificationResult(label: $label, confidence: $confidence)';
-  }
+  String toString() => 'ClassificationResult(label: $label, confidence: $confidence)';
 }
 
 class FoodClassificationService {
@@ -24,14 +21,21 @@ class FoodClassificationService {
 
   bool get isModelLoaded => _isModelLoaded;
 
+  /// Tải mô hình EfficientNet / MobileNet và nhãn
   Future<String> loadModel() async {
     try {
       _model = await PytorchLite.loadClassificationModel(
-          "assets/models/efficientnet_mobile.ptl", 300, 300, 30,
-          labelPath: "assets/labels.txt");
+        "assets/models/efficientnet_mobile.ptl",
+        300, 300, 30,
+        labelPath: "assets/labels.txt",
+      );
 
       final labelData = await rootBundle.loadString("assets/labels.txt");
-      _labels = labelData.split('\n').map((label) => label.trim()).where((label) => label.isNotEmpty).toList();
+      _labels = labelData
+          .split('\n')
+          .map((label) => label.trim())
+          .where((label) => label.isNotEmpty)
+          .toList();
 
       _isModelLoaded = true;
       print("Model and labels loaded successfully.");
@@ -43,25 +47,20 @@ class FoodClassificationService {
     }
   }
 
-  // === HÀM MỚI ĐỂ ÁP DỤNG SOFTMAX ===
+  /// Softmax chuyển đổi scores thành xác suất
   List<double> _applySoftmax(List<dynamic> scores) {
     final doubleScores = scores.cast<double>();
-
-    // Tìm giá trị lớn nhất để ổn định tính toán (tránh tràn số)
     final maxScore = doubleScores.reduce(max);
-
-    // Tính e^x cho mỗi điểm và tính tổng
     var sum = 0.0;
     final expScores = doubleScores.map((score) {
       final expScore = exp(score - maxScore);
       sum += expScore;
       return expScore;
     }).toList();
-
-    // Chuẩn hóa để có được xác suất
     return expScores.map((score) => score / sum).toList();
   }
 
+  /// Phân loại ảnh, trả về top 5 kết quả
   Future<List<ClassificationResult>> classifyImage(dynamic imageInput) async {
     if (!_isModelLoaded || _model == null || _labels == null) {
       print("Model or labels are not loaded yet.");
@@ -70,7 +69,6 @@ class FoodClassificationService {
 
     try {
       Uint8List imageBytes;
-
       if (imageInput is File) {
         imageBytes = await imageInput.readAsBytes();
       } else if (imageInput is Uint8List) {
@@ -80,34 +78,36 @@ class FoodClassificationService {
       }
 
       List? scores = await _model?.getImagePredictionList(imageBytes);
-
       if (scores == null) {
         print("Model returned null scores.");
         return [];
       }
 
-      // === BƯỚC THAY ĐỔI QUAN TRỌNG ===
-      // Áp dụng softmax để chuyển đổi scores thành probabilities
       final probabilities = _applySoftmax(scores);
-
       if (probabilities.length != _labels!.length) {
-        print("Error: Number of probabilities (${probabilities.length}) does not match number of labels (${_labels!.length}).");
+        print("Error: label count mismatch.");
         return [];
       }
 
-      List<ClassificationResult> results = [];
-      for (int i = 0; i < _labels!.length; i++) {
-        // Sử dụng giá trị probabilities đã được chuẩn hóa
-        results.add(ClassificationResult(_labels![i], probabilities[i]));
-      }
+      final results = [
+        for (int i = 0; i < _labels!.length; i++)
+          ClassificationResult(_labels![i], probabilities[i])
+      ];
 
       results.sort((a, b) => b.confidence.compareTo(a.confidence));
-
       return results.take(5).toList();
-
     } catch (e) {
       print("An error occurred during classification: $e");
       return [];
     }
+  }
+
+  /// ✅ Hàm tiện ích rút gọn, dùng trực tiếp trong UI
+  Future<String> predict(File image) async {
+    if (!isModelLoaded) await loadModel();
+    final results = await classifyImage(image);
+    if (results.isEmpty) return "Không nhận diện được món ăn";
+    final top = results.first;
+    return "${top.label} (${(top.confidence * 100).toStringAsFixed(1)}%)";
   }
 }
