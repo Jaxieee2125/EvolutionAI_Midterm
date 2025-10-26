@@ -159,8 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: 12),
                               TextButton(
-                                onPressed: () => Navigator.pushReplacementNamed(
-                                    context, '/register'),
+                                onPressed: () => context.go('/register'),
                                 child: const Text(
                                   'Chưa có tài khoản? Đăng ký ngay',
                                   style: TextStyle(

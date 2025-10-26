@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/api_config.dart';
 
@@ -34,11 +37,20 @@ class AuthRepository {
   // -------------------------
   // Đăng ký
   // -------------------------
-  Future<void> register(String username, String password) async {
-    await _dio.post('/register', data: {
-      'username': username,
-      'password': password,
-    });
+  Future<void> register(String username, String email, String password) async {
+    final response = await http.post(
+      Uri.parse('${ApiConfig.baseUrl}/auth/register'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'username': username,
+        'email': email,
+        'password': password,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(response.body);
+    }
   }
 
   // -------------------------

@@ -35,11 +35,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  // ===== REGISTER =====
+// ===== REGISTER =====
   Future<void> _onRegister(RegisterRequested e, Emitter<AuthState> emit) async {
     emit(state.copyWith(isLoading: true, error: ''));
     try {
-      await _repo.register(e.username, e.password);
+      // ✅ Gửi cả 3 trường: username, email, password
+      await _repo.register(e.username, e.email, e.password);
       emit(state.copyWith(isLoading: false));
     } catch (err) {
       emit(state.copyWith(isLoading: false, error: err.toString()));

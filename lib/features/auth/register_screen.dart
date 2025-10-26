@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../logic/blocs/auth/auth_bloc.dart';
 import '../../logic/blocs/auth/auth_event.dart';
@@ -39,8 +40,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               left: 16,
               child: IconButton(
                 icon: const Icon(LucideIcons.arrowLeft, color: AppColors.foreground),
-                onPressed: () =>
-                    Navigator.pushReplacementNamed(context, '/login'),
+                onPressed: () => context.go('/login'),
               ),
             ),
 
@@ -103,7 +103,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 const SnackBar(
                                     content: Text('Đăng ký thành công, hãy đăng nhập.')),
                               );
-                              Navigator.pushReplacementNamed(context, '/login');
+                              context.go('/login');
+
                             }
                           },
                           builder: (context, state) {
@@ -125,11 +126,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   TextFormField(
                                     controller: _fullName,
                                     decoration: const InputDecoration(
-                                      labelText: 'Họ và tên',
+                                      labelText: 'Tên đăng nhập',
                                       border: OutlineInputBorder(),
                                     ),
                                     validator: (v) => v == null || v.isEmpty
-                                        ? 'Nhập họ và tên'
+                                        ? 'Nhập tên đăng nhập'
                                         : null,
                                   ),
                                   const SizedBox(height: 16),
@@ -176,9 +177,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           .validate()) {
                                         context.read<AuthBloc>().add(
                                           RegisterRequested(
-                                              _email.text,
-                                              _password.text),
+                                            _fullName.text, // tên đăng nhập
+                                            _email.text,    // email
+                                            _password.text, // mật khẩu
+                                          ),
                                         );
+
                                       }
                                     },
                                     style: ElevatedButton.styleFrom(
@@ -202,9 +206,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                   const SizedBox(height: 12),
                                   TextButton(
-                                    onPressed: () =>
-                                        Navigator.pushReplacementNamed(
-                                            context, '/login'),
+                                    onPressed: () =>context.go('/login'),
                                     child: const Text(
                                       'Đã có tài khoản? Đăng nhập',
                                       style: TextStyle(
