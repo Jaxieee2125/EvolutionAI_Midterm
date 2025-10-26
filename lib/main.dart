@@ -6,22 +6,25 @@ import 'app_router.dart';
 
 void main() {
   final repo = AuthRepository();
-  runApp(MyApp(repo));
+  final authBloc = AuthBloc(repo);
+  final router = createRouter(authBloc);
+  runApp(MyApp(authBloc: authBloc, router: router));
 }
 
 class MyApp extends StatelessWidget {
-  final AuthRepository repo;
-  const MyApp(this.repo, {super.key});
+  final AuthBloc authBloc;
+  final router;
+  const MyApp({super.key, required this.authBloc, required this.router});
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-      providers: [BlocProvider(create: (_) => AuthBloc(repo))],
+      providers: [BlocProvider.value(value: authBloc)],
       child: MaterialApp.router(
         title: 'Evolution AI',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(fontFamily: 'Roboto'),
-        routerConfig: appRouter,
+        routerConfig: router, // dùng router tạo động
       ),
     );
   }

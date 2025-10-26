@@ -79,6 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: const EdgeInsets.all(24),
                     child: BlocConsumer<AuthBloc, AuthState>(
                       listener: (context, state) {
+                        FocusManager.instance.primaryFocus?.unfocus();
                         if (state.isAuthenticated) {
                           context.go('/home'); // thay vì Navigator.pushReplacementNamed
                         } else if (state.error != null) {
@@ -177,11 +178,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
 
                 const SizedBox(height: 24),
-                const Text(
-                  "Nhập bất kỳ email và mật khẩu nào để tiếp tục",
-                  style:
-                  TextStyle(color: AppColors.textMuted, fontSize: 12),
-                ),
               ],
             ),
           ),

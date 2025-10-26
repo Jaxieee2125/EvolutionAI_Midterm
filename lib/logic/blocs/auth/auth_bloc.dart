@@ -6,20 +6,27 @@ import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _repo;
+
   AuthBloc(this._repo) : super(const AuthState()) {
     on<LoginRequested>(_onLogin);
     on<RegisterRequested>(_onRegister);
     on<LogoutRequested>(_onLogout);
+    on<CheckAuthStatus>(_onCheckAuthStatus);
   }
 
+  // ===== LOGIN =====
   Future<void> _onLogin(LoginRequested e, Emitter<AuthState> emit) async {
-    emit(state.copyWith(isLoading: true));
+    emit(state.copyWith(isLoading: true, error: ''));
     try {
       final token = await _repo.login(e.username, e.password);
       if (token != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', token);
-        emit(state.copyWith(isAuthenticated: true, token: token, isLoading: false));
+        emit(state.copyWith(
+          isAuthenticated: true,
+          token: token,
+          isLoading: false,
+        ));
       } else {
         emit(state.copyWith(isLoading: false, error: 'Không nhận được token'));
       }
@@ -28,8 +35,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
+  // ===== REGISTER =====
   Future<void> _onRegister(RegisterRequested e, Emitter<AuthState> emit) async {
-    emit(state.copyWith(isLoading: true));
+    emit(state.copyWith(isLoading: true, error: ''));
     try {
       await _repo.register(e.username, e.password);
       emit(state.copyWith(isLoading: false));
@@ -38,9 +46,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
+  // ===== LOGOUT =====
   Future<void> _onLogout(LogoutRequested e, Emitter<AuthState> emit) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
     emit(const AuthState(isAuthenticated: false));
+  }
+
+  // ===== CHECK TOKEN LÚC KHỞI ĐỘNG =====
+  Future<void> _onCheckAuthStatus(
+      CheckAuthStatus e, Emitter<AuthState> emit) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token != null && token.isNotEmpty) {
+      emit(state.copyWith(isAuthenticated: true, token: token));
+    } else {
+      emit(const AuthState(isAuthenticated: false));
+    }
   }
 }
