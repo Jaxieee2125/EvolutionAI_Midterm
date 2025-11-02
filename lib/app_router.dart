@@ -1,5 +1,9 @@
+import 'package:evolution_ai/ui/components/admin_tab_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'features/admin/admin_approve_screen.dart';
+import 'features/admin/home_screen.dart';
 import 'logic/blocs/auth/auth_bloc.dart';
 import 'logic/blocs/auth/auth_notifier.dart';
 
@@ -24,17 +28,44 @@ GoRouter createRouter(AuthBloc authBloc) {
     navigatorKey: _rootNavigatorKey,
     refreshListenable: authNotifier, // ✅ GoRouter theo dõi bloc
     initialLocation: '/login',
-    redirect: (context, state) {
-      final isLoggedIn = authBloc.state.isAuthenticated;
+    redirect: (context, state) async {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final role = prefs.getString('role');
+      print('🔍 token: $token, role: $role');
+      final isLoggedIn = token != null;
       final isAuthRoute = state.uri.path == '/login' || state.uri.path == '/register';
 
       if (!isLoggedIn && !isAuthRoute) return '/login';
-      if (isLoggedIn && isAuthRoute) return '/home';
+
+      if (isLoggedIn && isAuthRoute) {
+        // ✅ Kiểm tra role để điều hướng đúng
+        if (role == 'admin') return '/admin';
+        return '/home';
+      }
+
+      // Chặn user thường truy cập trang admin
+      if (state.uri.path == '/admin' && role != 'admin') return '/home';
+
       return null;
     },
+
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+      ShellRoute(
+        builder: (context, state, child) => AdminTabBarShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/admin',
+            builder: (_, __) => const AdminDashboardScreen(),
+          ),
+          GoRoute(
+            path: '/admin/approve',
+            builder: (_, __) => const AdminApproveScreen(),
+          ),
+        ],
+      ),
       GoRoute(
         path: '/dish/:id',
         parentNavigatorKey: _rootNavigatorKey,

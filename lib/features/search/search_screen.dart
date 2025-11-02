@@ -6,6 +6,7 @@ import '../../data/models/category.dart';
 import '../../services/dish_service.dart';
 import '../../services/category_service.dart';
 import '../../ui/theme/colors.dart';
+import '../dish_detail/dish_detail_screen.dart';
 import '../home/widgets/dish_card.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -198,7 +199,20 @@ class _SearchScreenState extends State<SearchScreen> with AutomaticKeepAliveClie
                   key: const PageStorageKey<String>('searchScreenScroll'),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: dishes.length,
-                  itemBuilder: (context, i) => DishCard(dish: dishes[i], onTap: () {}),
+                  itemBuilder: (context, i) {
+                    final dish = dishes[i];
+                    return DishCard(
+                      dish: dish,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DishDetailScreen(dishId: dish.id),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 );
               },
             ),

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/api_config.dart';
 
@@ -27,7 +28,13 @@ class AuthRepository {
         'password': password,
       });
       final token = res.data['token'] as String?;
-      if (token != null) await saveToken(token);
+      if (token != null) {
+        Map<String, dynamic> decoded = JwtDecoder.decode(token);
+        final role = decoded['role'] ?? decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+        await saveToken(token);
+        await saveRole(role);
+        return token;
+      }
       return token;
     } catch (e) {
       rethrow;
@@ -58,7 +65,7 @@ class AuthRepository {
   // -------------------------
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('jwt_token', token);
+    await prefs.setString('token', token);
   }
 
   // -------------------------
@@ -66,7 +73,7 @@ class AuthRepository {
   // -------------------------
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('jwt_token');
+    return prefs.getString('token');
   }
 
   // -------------------------
@@ -76,4 +83,15 @@ class AuthRepository {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
   }
+
+  static Future<void> saveRole(String role) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('role', role);
+  }
+
+  static Future<String?> getRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('role');
+  }
 }
+

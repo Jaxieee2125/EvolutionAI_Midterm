@@ -81,8 +81,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       listener: (context, state) {
                         FocusManager.instance.primaryFocus?.unfocus();
                         if (state.isAuthenticated) {
-                          context.go('/home'); // thay vì Navigator.pushReplacementNamed
-                        } else if (state.error != null) {
+
+                        } else if (state.error != null && state.error!.isNotEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(state.error!)),
                           );

@@ -34,7 +34,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         child: Stack(
           children: [
-            // Back button
+            // Nút quay lại
             Positioned(
               top: 40,
               left: 16,
@@ -64,8 +64,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           )
                         ],
                       ),
-                      child:
-                      const Icon(LucideIcons.chefHat, size: 48, color: Colors.white),
+                      child: const Icon(LucideIcons.chefHat, size: 48, color: Colors.white),
                     ),
                     const SizedBox(height: 16),
                     const Text(
@@ -83,28 +82,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Form
+                    // Form đăng ký
                     Card(
                       shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(AppColors.radius)),
+                          borderRadius: BorderRadius.circular(AppColors.radius)),
                       elevation: 10,
                       child: Padding(
                         padding: const EdgeInsets.all(24),
                         child: BlocConsumer<AuthBloc, AuthState>(
-                          listener: (context, state) {
-                            if (state.error != null) {
+                          listener: (context, state) async {
+                            // ✅ Khi có lỗi thật
+                            if (state.error != null && state.error!.isNotEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text(state.error!)),
                               );
-                            } else if (!state.isLoading &&
-                                state.isAuthenticated == false) {
+                            }
+
+                            // ✅ Khi đăng ký thành công (hết loading, không lỗi, và có form hợp lệ)
+                            if (!state.isLoading && (state.error == null || state.error!.isEmpty)) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content: Text('Đăng ký thành công, hãy đăng nhập.')),
+                                  content: Text('Đăng ký thành công! Hãy đăng nhập.'),
+                                  backgroundColor: Colors.green,
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: Duration(seconds: 2),
+                                ),
                               );
-                              context.go('/login');
 
+                              // ⏳ đợi 1 chút để hiển thị SnackBar trước khi chuyển trang
+                              await Future.delayed(const Duration(milliseconds: 1500));
+
+                              if (context.mounted) context.go('/login');
                             }
                           },
                           builder: (context, state) {
@@ -123,6 +131,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     textAlign: TextAlign.center,
                                   ),
                                   const SizedBox(height: 24),
+
+                                  // Tên đăng nhập
                                   TextFormField(
                                     controller: _fullName,
                                     decoration: const InputDecoration(
@@ -134,6 +144,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         : null,
                                   ),
                                   const SizedBox(height: 16),
+
+                                  // Email
                                   TextFormField(
                                     controller: _email,
                                     decoration: const InputDecoration(
@@ -145,6 +157,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         : null,
                                   ),
                                   const SizedBox(height: 16),
+
+                                  // Mật khẩu
                                   TextFormField(
                                     controller: _password,
                                     obscureText: true,
@@ -157,6 +171,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         : null,
                                   ),
                                   const SizedBox(height: 16),
+
+                                  // Xác nhận mật khẩu
                                   TextFormField(
                                     controller: _confirmPassword,
                                     obscureText: true,
@@ -168,50 +184,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         ? 'Mật khẩu không khớp'
                                         : null,
                                   ),
+
                                   const SizedBox(height: 24),
+
+                                  // Nút đăng ký
                                   ElevatedButton(
                                     onPressed: state.isLoading
                                         ? null
                                         : () {
-                                      if (_formKey.currentState!
-                                          .validate()) {
+                                      if (_formKey.currentState!.validate()) {
                                         context.read<AuthBloc>().add(
                                           RegisterRequested(
-                                            _fullName.text, // tên đăng nhập
-                                            _email.text,    // email
-                                            _password.text, // mật khẩu
+                                            _fullName.text,
+                                            _email.text,
+                                            _password.text,
                                           ),
                                         );
-
                                       }
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 16),
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
                                       backgroundColor: AppColors.primary,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                            AppColors.radius),
+                                        borderRadius:
+                                        BorderRadius.circular(AppColors.radius),
                                       ),
                                     ),
                                     child: state.isLoading
-                                        ? const CircularProgressIndicator(
-                                        color: Colors.white)
+                                        ? const CircularProgressIndicator(color: Colors.white)
                                         : const Text(
                                       'Đăng ký',
                                       style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.white),
+                                          fontSize: 16, color: Colors.white),
                                     ),
                                   ),
+
                                   const SizedBox(height: 12),
+
+                                  // Chuyển sang đăng nhập
                                   TextButton(
-                                    onPressed: () =>context.go('/login'),
+                                    onPressed: () => context.go('/login'),
                                     child: const Text(
                                       'Đã có tài khoản? Đăng nhập',
                                       style: TextStyle(
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.w600),
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -225,8 +243,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 24),
                     const Text(
                       "Nhập thông tin để tạo tài khoản mới",
-                      style: TextStyle(
-                          color: AppColors.textMuted, fontSize: 12),
+                      style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                     ),
                   ],
                 ),

@@ -1,8 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../config/api_config.dart';
 import '../../../data/repositories/auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
+import 'package:dio/dio.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _repo;
@@ -19,18 +22,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(state.copyWith(isLoading: true, error: ''));
     try {
       final token = await _repo.login(e.username, e.password);
-      if (token != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', token);
-        emit(state.copyWith(
-          isAuthenticated: true,
-          token: token,
-          isLoading: false,
-        ));
-      } else {
-        emit(state.copyWith(isLoading: false, error: 'Không nhận được token'));
-      }
-    } catch (err) {
+      final decoded = JwtDecoder.decode(token!);
+      final role = decoded['role'] ?? decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+      await SharedPreferences.getInstance()
+        ..setString('token', token)
+        ..setString('role', role);
+
+      emit(state.copyWith(isAuthenticated: true, token: token));
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', token);
+      emit(state.copyWith(
+        isAuthenticated: true,
+        token: token,
+        isLoading: false,
+      ));
+        } catch (err) {
       emit(state.copyWith(isLoading: false, error: err.toString()));
     }
   }
@@ -59,10 +65,35 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       CheckAuthStatus e, Emitter<AuthState> emit) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
-    if (token != null && token.isNotEmpty) {
-      emit(state.copyWith(isAuthenticated: true, token: token));
-    } else {
+
+    if (token == null || token.isEmpty) {
+      emit(const AuthState(isAuthenticated: false));
+      return;
+    }
+
+    try {
+      // ✅ Gọi API /auth/me để xác thực lại
+      final res = await Dio(BaseOptions(
+        baseUrl: ApiConfig.baseUrl,
+        headers: {'Authorization': 'Bearer $token'},
+        connectTimeout: const Duration(seconds: 10),
+      )).get('/auth/me');
+
+      if (res.statusCode == 200) {
+        final data = res.data;
+        final role = data['role'] ?? 'user';
+        await prefs.setString('role', role);
+        emit(state.copyWith(isAuthenticated: true, token: token));
+      } else {
+        // Token sai hoặc hết hạn
+        await AuthRepository.clearToken();
+        emit(const AuthState(isAuthenticated: false));
+      }
+    } catch (err) {
+      // Nếu lỗi mạng hoặc token không hợp lệ
+      await AuthRepository.clearToken();
       emit(const AuthState(isAuthenticated: false));
     }
   }
+
 }
